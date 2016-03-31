@@ -1,0 +1,19 @@
+Resources used while completing this project:
+
+http://www.inside-r.org/packages/cran/RColorBrewer/docs/RColorBrewer
+http://www.inside-r.org/packages/cran/GGally/docs/ggpairs
+https://s3.amazonaws.com/udacity-hosted-downloads/ud651/diamondsExample.html
+http://www.r-bloggers.com/palettes-in-r/
+http://itl.nist.gov/div898/handbook/eda/section3/eda3669.htm
+https://discussions.udacity.com/t/l6-ggpairs-function/17313/6
+https://cran.r-project.org/web/packages/GGally/index.html
+https://cran.r-project.org/web/packages/GGally/GGally.pdf
+http://www.programiz.com/r-programming/for-loop
+http://www.programiz.com/r-programming/ifelse-function
+http://stackoverflow.com/questions/16350720/using-geom-line-with-x-axis-being-factors
+http://docs.ggplot2.org/current/aes_group_order.html
+
+3D plots:
+https://cran.r-project.org/web/packages/plot3D/vignettes/plot3D.pdf
+http://www.rforscience.com/portfolio/oxygen-concentrations-at-3000-m/
+http://www.rforscience.com/portfolio/mtcars/

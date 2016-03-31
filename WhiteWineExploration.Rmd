@@ -1,0 +1,386 @@
+---
+title: "Chemicals Affecting the Quality of White Wine"
+author: "Casey Faist"
+date: "February 19, 2016"
+output: 
+  html_document: 
+    fig_caption: yes
+    number_sections: yes
+    theme: readable
+---
+# Abstract
+This analysis explores the effects of different chemicals in white wine on the taste and reported quality of individual wines. 
+
+# Introduction
+
+A study from the University of Minho detailed the chemical profiles and subjective rating of several different wines. The full profile of the data, collection methods and descriptions of objective and subjective attributes can be found here: [link](https://s3.amazonaws.com/udacity-hosted-downloads/ud651/wineQualityInfo.txt)  
+
+What makes a good wine, and whether a wine can be considered objectively superior to others, is the subject of intense debate. Some studies suggest that the perception of a wine's quality is based more on the container or price than the beverage itself --- for a summary of some statistical analyses of wine tasting competitions, check out this article [link](http://www.theguardian.com/lifeandstyle/2013/jun/23/wine-tasting-junk-science-analysis).  
+
+But many of these analyses do not take the chemical profile of the wines into account. In this analysis, I will be exploring whether the chemically measured aspects of the individual wine samples had any meaningful effect on the wine's rating.
+
+# Exploration
+## Univariate Exploration
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk.
+# This prevents the code from displaying in the knitted HTML output.
+# You should set echo=FALSE for all code chunks in your file.
+#install.packages(ggplot2)
+library(ggplot2)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+wineQualityWhites <- read.csv("wineQualityWhites.csv")
+```
+
+```{r echo=FALSE}
+dim(wineQualityWhites)
+names(wineQualityWhites)
+str(wineQualityWhites)
+```
+
+This dataset contains 4898 observations - so almost 5000 individual wine samples - of 13 variables. Eleven of those are the chemical profiles of the wines, one is the score the wine has been given, and X is the sample number. This dataset seems very tidy, so no further cleaning is needed.
+
+While "quality" could have easily been an ordered factor, it was recorded as an int. For now, however, this presentation serves our purpose just fine - so lets get a summary.
+
+```{r echo=FALSE}
+summary(wineQualityWhites)
+```
+
+####Quality
+Wine samples were scored on a scale from 0 to 10. Reported scores in the dataset ranged from 3 to 9, with a median of 6 and an average of 5.878 (wines were given whole number scores). Time for a histogram.
+```{r echo=FALSE}
+wineQualityWhites$quality <- factor(wineQualityWhites$quality)
+wineQualityWhites$quality <- ordered(wineQualityWhites$quality)
+qplot(x=quality, data = wineQualityWhites)
+```
+This normally distributed plot makes it clear that the vast majority of wine samples are rated slightly above average, with only around 400 samples in total scoring either below 5 or above 7.
+
+```{r echo=FALSE}
+score.9 <- subset(wineQualityWhites, quality == 9)
+```
+Only 5 wines scored a 9. I wonder how their chemical compositions compare to the entire dataset's. 
+
+While overlaying the averages of the top scoring wines on the histograms of the entire samplings' data by variable would be enlightening, it might also be a little overkill for the purposes of this exploration, so let's just compare summary ranges and means for now.
+
+```{r echo=FALSE}
+summary(score.9)
+```
+
+#### Fixed Acidity
+Described in the accompanying file as tartaric acid, "most acids involved with wine or fixed or nonvolatile", and measured in g / dm^3.  
+
+The lowest value for fixed acidity was 3.8, the highest was 14.2, and the mean was 6.855.
+
+The wines with 9s had a mean of 7.4, with quartiles at 6.9 and 7.4. These numbers are all slightly higher than the total mean -- potentially significant, potentially just a sampling bias. Possible candidate for further investigation.
+
+#### Volatile acid
+This is the amount of acetic acid in each wine sample in g / dm^3. Too much acetic acid can cause wine to taste like vinegar.The minimum level for all samples was 0.08, the maximum level was 1.1, and the mean was 0.27.
+
+The top scorers here had a mean of 0.29, with a minimum and maximum of 0.24 and 0.36 respectively. In this regard, these wines seem average.
+
+#### Citric Acid
+Described as adding the flavor "freshness" to a wine, the lowest amount found in the whole data set was 0.0000 g / dm^3. The most was 1.66, but the average was 0.32, with first and third quartiles clustered nearby at 0.27 and 0.39, respectively. 
+
+The minimum citric acid reported value for the top 5 was 0.29, and the top was 0.49. The average was 0.38 and the quartiles were 0.34 and 0.45 - potentially skewed towards slightly higher concentrations than the total population? It might be interesting to see if exceptionally low values correspond to lower quality ratings.
+
+#### Residual Sugar
+While this dataset included an apparent (superior) sweet wine or two, with a max reported value of 65.8 grams/liter (wines over 45 grams/liter are considered sweet), the mean residual sugar value was 6.391 g/l, with quartiles at 1.7 and 9.9. The minimum value was 0.6.
+
+The gold standard wines, in contrast, had a mean of 4.12 g/l, with quartiles at 2.0 and 4.2. The lowest was 1.6, and the highest seemed to be a bit of an outlier at 10.6. It is interesting to note that the top rated wines mostly fell between the first quartile and mean of the total dataset.
+
+#### Chorides
+The amount of salt in the wine, measured in g / dm^3. The total dataset had a minimum of 0.009, a maximum of 0.34, and an average of 0.04577. 
+
+The 5 best wines were all below the total average, with a mean of 0.0274. This seems like a potential candidate for a predictor of wine quality.
+
+#### Free Sulfur Dioxide
+Important in preventing microbial growth and oxidation, the range for the dataset's free SO2 values was from 2 to 289. The mean was 35.31 (values were reported in whole numbers here as well), and the quartiles were nearby at 23 and 46. 
+
+For the top tier wines, the mean was 33.4, with quartiles at 27 and 31, the minimum at 24, and the max potentially outlying at 57. While free sulfur dioxide might be passively important to insuring wine quality -- by preventing negative aspects of aging such as oxidation -- these values seem reasonably average. 
+
+#### Total Sulfur Dioxide
+The total amount of both bound and free forms of SO2 in the sample, measured in mg / dm^3. Variables ranged from 9 to 440, with an average of 138.4 and quartiles at 108 and 167.
+
+The SO2 average for the best wines was, in contrast, 116, with a minimum of 85 and a maximum of 139. A lower, but not too low, total SO2 count seems potentially important for taste.
+
+#### Density
+The density of most wine is close to water, but is affected by alcohol and sugar content. The average density of all wines was 0.994 g / cm^3, with quartiles at 0.9917 and 0.9961.
+
+The quartiles for supreme sample density were at 0.9898 and 0.9906, and the mean was 0.9915 - skewed above the quartiles, most likely by the maximum value at 0.997. Something wonky may be going on here, but as density is affected by alcohol and sugar content, it might make more sense to check those variables' effect on quality score first.
+
+#### pH
+An average pH score for wine is between 3 and 4, and all wines tested fell between a pH of 2.72 and 3.82. The mean for all wines was 3.188.
+
+The mean for the top scorers was 3.308, and all five samples fell above the total mean, ranging between 3.2 and 3.41. This is another case where the difference could be significant, or simply an effect of the small sample size. 
+
+#### Sulphates
+Potassium sulphate is often added to wine to bolster SO2 levels, again to prevent microbe growth and wine oxidation. All wine samples fell between 0.22 g / dm^3 and 1.08 g / dm^3, with quartiles at 0.41 and 0.55. The average sulphate content of all samples was 0.48.
+
+The top shelf samples fell between 0.36 and 0.61, with quartiles at 0.42 and 0.48 and an average of 0.46. This seems sufficiently average, and makes me wonder about the process of SO2 management in wine production - perhaps an industry standard amount determines the levels added, rather than a chemical assay on how much a young wine needs to prevent spoiling? If so, this could account for the widely fluctuating levels of total SO2 in the wines, as compared to the variation in other chemical ranges. 
+
+#### Alcohol
+Arguably the chemical factor with the most agency to improve a wine's score based on the number of other samples an expert has judged in one go. The range for all samples was between 8% by volume and 14%. The first and third quartiles were at 9.5% and 11.4%, and the average volume of alcohol was 10.51% for all samples.
+
+The top scorers all fell between 10.4% and 12.9%, and the average was 12.18% --- too much of a difference not to investigate given the physiopsychological effects of alcohol on humans. 
+
+
+### Thoughts on univariate profiles of top scorers
+Using only the data from the 5 best wines to select which chemical aspects to investigate has some obvious draw backs, especially the constant potential for artificially high or low means when compared to the total dataset means, I felt it was a good, quick way to identify which factors had the biggest potential to predict whether a wine would score exceptionally well. Since I am most interested in finding out which chemical aspects make a wine excel, and which are not correlated with better scores.
+
+Another suspicion I have about this data is that some chemicals are likely more strongly related with a wine not being bad - such as, too much citric acid making a wine taste funny, but below a threshold falls to personal preference or is unreliably detected by the human tongue. This would be another, very interesting, investigation, and I suspect it might be far easier to correlate certain levels of chemicals to drinkable versus undrinkable, rather than trying to correlate certain levels of chemicals with excellence. That is not, however, the analysis I will do here.
+
+The variables I am most interested in, after comparing quartiles and means, are Chloride, Total Sulfur Dioxide, alcohol, and pH. Let's look a little closer with some histograms.
+
+```{r echo=FALSE}
+
+ggplot(data = wineQualityWhites, aes(x = chlorides)) + 
+  geom_histogram(binwidth = .001)
+```
+With a binwidth of 0.001, we see a tall, skinny but (mostly) normally distributed majority, with a bit of a tail starting arount 0.08. I'll be interested to see the distribution of sample scores above and below that number.
+
+```{r echo=FALSE}
+ggplot(data = wineQualityWhites, aes(x = total.sulfur.dioxide)) +
+  geom_histogram(binwidth = 5)
+```
+Fairly normally distributed with a binwidth of 5, with just a handful of outliers on the high end. 
+
+```{r echo=FALSE}
+ggplot(data = wineQualityWhites, aes(x = pH)) +
+  geom_histogram()
+ggplot(data = wineQualityWhites, aes(x = pH)) +
+  geom_histogram(binwidth = 0.01)
+```
+This plot, which at first suggested a bit of modality, comes out as fairly regular around the mean (3.18) when binwidth is adjusted to 0.01. 
+
+```{r echo=FALSE}
+ggplot(data = wineQualityWhites, aes(x = alcohol)) +
+  geom_histogram(binwidth = 0.1)
+```
+This follows a low, slow right skew, with many more wines of around 9.5% alcohol. The most interesting breakdown of this to me so far would be to check the quality rankings between 9 and 9.5, between 9.5 and 11.5, and 12 to 12.5.
+ 
+## Bivariate Analysis
+
+As a quick check, I want to do a scatterplot matrix of all 9000 samples.
+
+```{r echo=FALSE, warning=FALSE}
+# install.packages('GGally')
+# install.packages('scales')
+# install.packages('memisc')
+# install.packages('lattice')
+# install.packages('MASS')
+# install.packages('car')
+# install.packages('reshape')
+# install.packages('plyr')
+
+library(GGally)
+library(scales)
+library(memisc)
+
+
+
+ggpairs(wineQualityWhites,
+        lower = list(continuous = wrap("points", shape = I('.'))), 
+        upper = list(combo = wrap("box", outlier.shape = I('.'))))
+```
+
+It seems the strongest correlation with quality is alcohol. Close behind are chlorides, total sulfur dioxide and density; however, as a liquid's density is affected by alcohol content, density is also strongly related to alcohol.
+
+
+```{r echo=FALSE}
+#initializing all base plots
+ch <- ggplot(aes(x=quality, y=chlorides), data = wineQualityWhites)
+tso <- ggplot(aes(x=quality, y = total.sulfur.dioxide), data = wineQualityWhites)
+dens <- ggplot(aes(x=quality, y = density), data = subset(wineQualityWhites, density< 1.01))
+alc <- ggplot(aes(x=quality, y = alcohol), data = wineQualityWhites)
+```
+
+####Chloride levels
+```{r echo=FALSE}
+ch + geom_violin() + geom_point(alpha = 1/5)
+```
+
+I chose a violin plot for this variable after noticing a huge number of outliers and similar medians in a box plot. For the entire set of chloride levels, we see that the maximum density of observations lowers as quality increases, but that on the whole, the range where most observations exist stays fairly consistent. From the earlier histogram, I remember that on either side of 0.08, I wondered if I would see a trend in quality scores: lets break those down now.
+
+```{r echo=FALSE}
+
+wineQualityWhites$chloride.threshold <- cut(wineQualityWhites$chlorides, breaks = c(0, 0.08, 0.4))
+
+qplot(x=quality, data=wineQualityWhites) +
+  facet_wrap(~chloride.threshold)
+
+```
+
+Two histograms wrapped by new variable chloride.threshold, created using the cut() function, show that neither group clusters around either higher or lower scores; both can be said to focus around the median of quality scores. 
+
+
+#### Total SO2 Levels
+```{r echo=FALSE}
+tso + geom_boxplot()
+```
+
+This plot seems to occilate towards a narrower range as quality goes up. Lower scores having the largest quantiles and error bars, and the error geting smaller and smaller the higher the quality. The trend is especially strong between the biggest three groups of samples -- score 5, 6, and 7 -- and the medians and error bars do seem to narrow towards a point. This may be worth investigating in a linear model later on.
+
+#### pH Levels
+```{r echo=FALSE}
+dens + geom_violin() + geom_boxplot(alpha = 1/2)
+```
+
+For density, I tested overlaying a violin plot with a box plot, to see how the mean changed as well as the distribution of observations around those medians. There does seem to be a trend towards higher qualities being slightly less dense - but, the density range of all the over-5 quality samples is somewhat wide. As density is affected by the alcohol and sugar content, it is unclear whether density is the affective variable or simply a side effect of preferred sugar and alcohol levels.
+
+#### Alcohol Content
+```{r echo=FALSE}
+alc + geom_boxplot(aes(group = quality))
+```
+This is an interesting plot. The mean alcohol content between score 5 and 9 moves strongly upwards. Score 3 and 4 move downwards towards the local minimum at 5 - however, its worth noting that score 5 is the only category with more than two outliers, so the calculated mean may be artificially low. This might be worth a closer look.
+
+```{r echo=FALSE}
+high.quality.wine <- subset(wineQualityWhites, quality > 4)
+
+ggplot(aes(x = quality, y = alcohol), data = high.quality.wine) +
+  geom_point(position = "jitter", color = "tan") +
+  geom_line(stat = "summary", fun.y = mean, color = "red", group = 1) + 
+  geom_line(stat = "summary", fun.y = quantile, fun.args = list(probs = .9), group = 1, linetype = 2) + 
+  geom_line(stat = "summary", fun.y = quantile, fun.args = list(probs = .1), group = 1, linetype = 2)
+  
+```
+This plot shows the quantiles (black) and the calculated mean (red). While the lower quantile does not rise as sharply as the upper quartile does, there is a distint trend for wines with higher scores to be around or above 11% alcohol.
+
+
+### Thoughts on Bivariate
+What I notice across all the graphs is that the means of all chemicals but alcohol are within quantiles of eachother, with error bars and outliers concentrating around the quality categories with the highest counts, as one would expect.
+
+So, lets check out whether certain chemical balances score higher.
+
+
+#Multivariate Investigation
+
+```{r echo=FALSE}
+## install and load the RColorBrewer package
+#install.packages('RColorBrewer')
+library(RColorBrewer)
+
+
+ggplot(aes(x = alcohol, y = density, color = quality), data = subset(high.quality.wine, density < 1.01))+
+  geom_count(alpha = 1/2) +
+  scale_color_brewer(type = "qual", palette = "Set1")  +
+  facet_wrap(~quality)
+
+```
+This graph shows a strong inverse linear relationship between density and alcohol, which makes sense, but along that trend, we see that higher quality categories tend towards lower density and higher alcohol percentages. 
+
+```{r echo=FALSE}
+
+ggplot(aes(x = alcohol, y = total.sulfur.dioxide, color = quality ), data = high.quality.wine, subset(high.quality.wine, density < 1.01)) +
+  geom_count(alpha = 1/2) +
+  scale_color_brewer(type = "qual", palette = "Set1") +
+  facet_wrap(~quality)
+
+```
+It appears that wines with higher quality scores may have somewhat less sulfur dioxide, although again, whether wines score better due to lower total SO2 or whether wines with more alcohol simply tend to have less SO2 is yet to be seen.
+
+```{r echo=FALSE}
+ggplot(aes(x = alcohol, y = residual.sugar, color = quality), data = subset(high.quality.wine, density < 1.01))+
+  geom_count(alpha = 1/2) +
+  scale_color_brewer(type = "qual", palette = "Set1")  +
+  facet_wrap(~quality)
+
+```
+
+
+
+##Bonus Round: Linear model
+
+```{r echo=FALSE}
+
+print("high-quality (5+) model")
+hq1 <- lm(alcohol ~ quality, data = subset(wineQualityWhites, quality > 4))
+hq2 <- update(hq1, ~ . + density)
+hq3 <- update(hq2, ~ . + residual.sugar)
+mtable(hq1, hq2, hq3)
+
+print("low-quality(3&4) model")
+lq1 <- lm(chlorides ~ quality, data = subset(wineQualityWhites, quality <= 4))
+lq2 <- update(lq1, ~ . + density)
+lq3 <- update(lq2, ~ . + alcohol)
+mtable(lq1, lq2, lq3)
+
+
+
+```
+
+
+# Final Plots and Summary
+
+##Plot One: Chloride Level Violin Plot
+
+```{r echo=FALSE}
+ch + geom_violin() + geom_point() + 
+  geom_line(stat = "summary", fun.y = mean, color = "red", group = 1) + 
+  geom_line(stat = "summary", fun.y = median, color = "blue", group = 1, linetype = 2) + 
+  geom_line(stat = "summary", fun.y = quantile, fun.args = list(probs = .9), group = 1, linetype = 2) + 
+  geom_line(stat = "summary", fun.y = quantile, fun.args = list(probs = .1), group = 1, linetype = 2) +
+  xlab("Quality Score") +
+  ylab("Chloride Count") +
+  ggtitle("Density of White Wine Chloride Count by Quality")
+```
+
+##Discussion
+This plot highlights a trend present in most of the scientifically obtained variables - the wide range of outliers centered on the lower-middle end of the score. Chlorides especially exhibit an almost-flat line for quantiles, mean (red) and median (blue dashed) scores across quality levels.
+
+
+##Plot Two: Drunk in Love (With R)
+
+```{r echo=FALSE}
+
+high.quality.wine$density.bins <- cut_width(high.quality.wine$density, 0.01)
+
+
+ggplot(aes(x = quality, y = alcohol), data = high.quality.wine) +
+  geom_point(position = "jitter", aes(color = density.bins)) +
+  scale_color_brewer(type = "seq", palette = 2, guide_legend(title = "Density Ranges")) +
+  geom_smooth(stat = "summary", group = 1) + 
+  xlab("Quality Score") +
+  ylab("Alcohol (% by volume)") +
+  ggtitle("Distribution of Sample Alcohol Volume and Density by Quality")
+
+```
+
+##Discussion
+This chart explored how a sample's alcohol percentage related to its quality. With many more samples in the lower spectrums again, it was exciting to see a linear trend emerge. With fewer samples in the higher scores, we see the error increase along with the quality score - but our linear model supports that both of these can be used to predict a wine's score. 
+
+##Plot 3: Lining up the variables
+
+```{r echo=FALSE}
+
+a <- ggplot(aes(x = alcohol, y = density, color = quality), data = subset(high.quality.wine, density < 1.01 & quality < 9))+
+  geom_count(alpha = 1/5) +
+  scale_color_brewer(type = "qual", palette = "Set1", guide_legend(title = "Quality"))  +
+  facet_wrap(~quality) +
+  xlab("Alcohol (% by volume)") +
+  ylab("Density") +
+  ggtitle("The Relationships between Alcohol, Density and Total Sulfur Dioxide, by Quality")
+
+b <- ggplot(aes(x = alcohol, y = total.sulfur.dioxide, color = quality), data = subset(high.quality.wine, density < 1.01 & quality < 9))+
+  geom_count(alpha = 1/5) +
+  scale_color_brewer(type = "qual", palette = "Set1", guide_legend(title = "Quality"))  +
+  xlab("Alcohol (% by volume)") +
+  ylab("Total Sulfur Dioxide") +
+  facet_wrap(~quality)
+
+gridExtra::grid.arrange(a, b)
+```
+
+##Discussion
+This chart explores in more detail the bivariate trends at each quality level. While both Density and Total Sulfur Dioxide display more variety at score 5 and 6, a non-flat linear trend persists in the Density X Alcohol breakdown, whereas a non-flat linear trend does not emerge in higher quality levels for TSO2. Since Alcohol exhibited the strongest trend, you'd expect that if a particular level of TSO2 was an indicator of quality, you'd find that level paired with any one quality score more often than the others, and that is the opposite of what we see.
+
+
+# Reflection
+This dataset suggests, after scrutiny, that certain factors (alcohol, residual sugar, and density) may be more strongly correlated to a sample's score than others (chlorides, sulfur dioxide, pH). With so few samples of exceptional wines, its hard to classify what makes a great wine as opposed to a mediocre or bad wine; however, my observation is that these three more-predictive variables could be classified as sort of "macro" flavors - flavors all humans can probably detect easily and accurately. 
+
+The dataset did not provide any ranges for humans' ability to detect or distinguish between concentrations of any of the chemicals, let alone those that the study mentioned as "important" to a wine's flavor. Smell plays a huge role in how we percieve taste, as well, and this dataset didn't include any variables in that category. Since its highly possible that homans have perception thresholds for 
